@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mi Comercio Web</title>
-  <link rel="stylesheet" href="css/bootstrap.min.css">
+  <link rel="stylesheet" href="css/bootstrap.min.css" />
 
   <style>
     .badge-carrito {
@@ -34,7 +34,7 @@
     }
 
     .producto-item:hover {
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     }
 
     footer {
@@ -62,13 +62,13 @@
   <div id="miCarrusel" class="carousel slide" data-bs-ride="carousel">
     <div class="carousel-inner">
       <div class="carousel-item active">
-        <img src="https://placehold.co/2000x400" class="d-block w-100" alt="Imagen 1">
+        <img src="https://placehold.co/2000x400" class="d-block w-100" alt="Imagen 1" />
       </div>
       <div class="carousel-item">
-        <img src="https://placehold.co/2000x400" class="d-block w-100" alt="Imagen 2">
+        <img src="https://placehold.co/2000x400" class="d-block w-100" alt="Imagen 2" />
       </div>
       <div class="carousel-item">
-        <img src="https://placehold.co/2000x400" class="d-block w-100" alt="Imagen 3">
+        <img src="https://placehold.co/2000x400" class="d-block w-100" alt="Imagen 3" />
       </div>
     </div>
     <button class="carousel-control-prev" type="button" data-bs-target="#miCarrusel" data-bs-slide="prev">
@@ -83,15 +83,12 @@
   <div class="container mt-5">
     <div class="row">
 
-      <!-- Barra lateral de categorías -->
+      <!-- Barra lateral de categorías dinámicas -->
       <aside class="col-md-3">
         <div class="sidebar-categorias">
           <h6 class="mb-3 text-primary">Explorar categorías</h6>
-          <ul class="list-unstyled">
-            <li><a href="#" class="text-dark d-block py-1">📦 Electrónica</a></li>
-            <li><a href="#" class="text-dark d-block py-1">👕 Ropa</a></li>
-            <li><a href="#" class="text-dark d-block py-1">📚 Libros</a></li>
-            <li><a href="#" class="text-dark d-block py-1">🏠 Hogar</a></li>
+          <ul id="contenedorCategorias" class="list-group list-group-flush">
+            <!-- Categorías dinámicas se insertarán aquí -->
           </ul>
         </div>
       </aside>
@@ -99,7 +96,7 @@
       <!-- Productos -->
       <section class="col-md-9">
         <div class="row" id="contenedorProductos">
-          <!-- Aquí van los productos dinámicamente -->
+          <!-- Productos se insertarán aquí dinámicamente -->
         </div>
       </section>
 
@@ -111,8 +108,139 @@
     <p class="mb-0">© 2025 - Creado por Diego Gilberto Gudiel Orellana | 1890-20-18555</p>
   </footer>
 
+  <!-- Scripts -->
   <script src="js/bootstrap.bundle.min.js"></script>
-  <script src="js/tiendagudiel.js"></script>
 
+  <!-- Código JavaScript integrado -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const urlProductos = "https://backcvbgtmdesa.azurewebsites.net/api/productos";
+      const urlCategorias = "https://backcvbgtmdesa.azurewebsites.net/api/categorias";
+
+      const contenedorProductos = document.getElementById("contenedorProductos");
+      const contenedorCategorias = document.getElementById("contenedorCategorias");
+      const contadorCarrito = document.getElementById("contadorCarrito");
+
+      let carrito = 0;
+      let productosGlobal = [];
+      let categoriasGlobal = [];
+
+      // Mostrar productos, con filtro opcional por categoría
+      function mostrarProductos(filtroCategoriaId = null) {
+        contenedorProductos.innerHTML = "";
+
+        const productosMostrar = filtroCategoriaId
+          ? productosGlobal.filter(p => p.CategoriaId === filtroCategoriaId)
+          : productosGlobal;
+
+        if (productosMostrar.length === 0) {
+          contenedorProductos.innerHTML = `<div class="alert alert-warning">No hay productos para esta categoría.</div>`;
+          return;
+        }
+
+        productosMostrar.forEach(producto => {
+          const col = document.createElement("div");
+          col.className = "col-md-4 col-sm-12 p-2";
+
+          let precioHTML = "";
+          if (producto.EnOferta && producto.PrecioOferta != null) {
+            precioHTML = `
+              <span class="text-danger">$${parseFloat(producto.PrecioOferta).toFixed(2)}</span>
+              <small class="text-muted text-decoration-line-through">$${parseFloat(producto.Precio).toFixed(2)}</small>
+            `;
+          } else {
+            precioHTML = `$${parseFloat(producto.Precio).toFixed(2)}`;
+          }
+
+          col.innerHTML = `
+            <div class="card">
+              <img src="${producto.Imagen}" class="card-img-top" alt="${producto.Nombre}">
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title">${producto.Nombre}</h5>
+                <p class="card-text">${producto.Descripcion}</p>
+                <p class="fw-bold">${precioHTML}</p>
+                <a href="javascript:void(0)" class="btn btn-primary mt-auto agregarCarrito">Agregar al carrito</a>
+              </div>
+            </div>
+          `;
+
+          col.querySelector(".agregarCarrito").addEventListener("click", (e) => {
+            e.preventDefault();
+            carrito++;
+            contadorCarrito.textContent = carrito;
+          });
+
+          contenedorProductos.appendChild(col);
+        });
+      }
+
+      // Mostrar categorías dinámicamente
+      function mostrarCategorias() {
+        contenedorCategorias.innerHTML = "";
+
+        const liTodas = document.createElement("li");
+        liTodas.className = "list-group-item";
+        liTodas.textContent = "Todas";
+        liTodas.style.cursor = "pointer";
+        liTodas.style.color = "#0d6efd";
+        liTodas.style.fontWeight = "bold";
+        liTodas.addEventListener("click", () => {
+          mostrarProductos(null);
+          marcarCategoriaSeleccionada(null);
+        });
+        contenedorCategorias.appendChild(liTodas);
+
+        categoriasGlobal.forEach(categoria => {
+          const li = document.createElement("li");
+          li.className = "list-group-item";
+          li.textContent = categoria.descripcion;
+          li.style.cursor = "pointer";
+          li.style.color = "#0d6efd";
+
+          li.addEventListener("click", () => {
+            mostrarProductos(categoria.id_categoria);
+            marcarCategoriaSeleccionada(categoria.id_categoria);
+          });
+
+          contenedorCategorias.appendChild(li);
+        });
+      }
+
+      // Marcar la categoría seleccionada visualmente
+      function marcarCategoriaSeleccionada(idCategoria) {
+        [...contenedorCategorias.children].forEach(li => {
+          li.style.backgroundColor = "";
+          li.style.color = "#0d6efd";
+
+          if (
+            (idCategoria === null && li.textContent === "Todas") ||
+            (idCategoria !== null &&
+              li.textContent === categoriasGlobal.find(cat => cat.id_categoria === idCategoria)?.descripcion)
+          ) {
+            li.style.backgroundColor = "#0d6efd";
+            li.style.color = "white";
+          }
+        });
+      }
+
+      // Cargar productos y categorías
+      Promise.all([
+        fetch(urlCategorias).then(res => res.json()),
+        fetch(urlProductos).then(res => res.json())
+      ]).then(([categorias, productos]) => {
+        categoriasGlobal = categorias;
+        productosGlobal = productos;
+
+        mostrarCategorias();
+        mostrarProductos();
+        marcarCategoriaSeleccionada(null);
+      }).catch(error => {
+        console.error("Error al cargar datos:", error);
+        contenedorProductos.innerHTML = '<div class="alert alert-danger">No se pudieron cargar los productos.</div>';
+        contenedorCategorias.innerHTML = '<div class="alert alert-danger">No se pudieron cargar las categorías.</div>';
+      });
+    });
+  </script>
 </body>
 </html>
+
